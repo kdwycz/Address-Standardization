@@ -28,4 +28,4 @@
 ----
 - 网站： `@kdwycz <https://blog.kdwycz.com>`
 - github：`@kdwycz <https://github.com/kdwycz>`
-- email：kdwycz@email.com
+- email：kdwycz@gmail.com
