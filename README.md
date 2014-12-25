@@ -9,14 +9,17 @@
 
 依赖库
 ----
+- os
 - httplib2
 - json
 - codecs
-
+- ConfigParser
 
 使用方法
 ----
-把表格的数据复制到input文件夹下对应的txt文件。
+把表格的数据复制到input文件夹下对应的txt文件（空行不复制）。
+
+在config.ini文件中添加百度地图APIkey
 
 运行根目录下 start.py 文件
 
@@ -24,8 +27,14 @@
 ----
 - 最好在linux系统下复制excel到文本。
 
+- 因为HTTP请求的缘故，数据量大时程序会比较慢。请耐心等待。
+
+- 百度地图APIkey一天最多支持10W次查询，1.1版本暂时不支持多APIkey负载均衡，需要自行修改start.py的APINUM列表实现多APIKEY调用
+
 联系我
 ----
 - 网站： `@kdwycz <https://blog.kdwycz.com>`
+
 - github：`@kdwycz <https://github.com/kdwycz>`
+
 - email：kdwycz@gmail.com
