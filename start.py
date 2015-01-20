@@ -4,12 +4,33 @@
 __author__ = 'kdwycz'
 
 import os
-from openpyxl import load_workbook
+import json
+import codecs
 from global_list import *
 import baidu.map as baidu
-import platform
 
-def Analyse(address):
+def read_file(files):
+    """读取文件函数：
+    参数：文件路径和文件名（相对于input目录）
+    返回：一个列表，列表的每个元素代表输入文件的一行，
+    是一个元组，有两个字符串。
+    """
+    try:
+    	data = []
+    	fileread = open('./input/' + files, 'r')
+    except IOError as err:
+    	print('File Error:'+str(err))
+    	return data
+    for line in fileread.readlines():
+        data1 = line.split('\t')[0]
+        data2 = line.split('\t')[1]
+        data2 = data2.strip()
+        ttuple = (data1, data2)
+        data.append(ttuple)
+    fileread.close()
+    return data
+
+def analyse(address):
     """分析地区名是否合法函数：
     输入：地址字符串,百度APIKEY
     返回：一个元组，第一个元素是True/False。如果为True，
@@ -29,130 +50,185 @@ def Analyse(address):
             flag = False
         else:
             ddict = baidu.finddir(xy, KEY[NUM % APINUM])
-            if ddict[u'province'] == u'error':
-                flag = False
             NUM += 1
     return (flag,ddict)
 
-def CreateDict(sheetname,maindict):
-    error = 0
-    inws = inwb.get_sheet_by_name(sheetname)
-    sheetrow = inws.get_highest_row()
-    sheetcol = inws.get_highest_column()
-    for i in range(1+OS,sheetrow+OS):
-        num = inws.cell(row=i,column=0+OS).value
-        address = inws.cell(row=i,column=1+OS).value
-        flag = True
-        if num and address:
-            ddict = Analyse(address)
-            if ddict[0]:
-                ddict = ddict[1]
-                maindict[num] = ddict
-                address = ddict['province'] + ddict['city'] + ddict['district']
-                inws.cell(row=i,column=sheetcol+OS).value = address
-            else:
-                flag = False
-        else:
-            flag = False
-        if not flag:
-            inws.cell(row=i,column=sheetcol+OS).value = 'Error'
-            error += 1
-    return error
+def save_dict(ddict, name):
+    fw = codecs.open('./temp/' + name,'w','utf-8')
+    strdict = json.dumps(ddict, encoding="utf-8")
+    fw.write(strdict)
+    fw.close()
 
-def CheckDict(sheetname,maindict):
-    error = 0
-    inws = inwb.get_sheet_by_name(sheetname)
-    sheetrow = inws.get_highest_row()
-    sheetcol = inws.get_highest_column()
-    for i in range(1+OS,sheetrow+OS):
-        num = inws.cell(row=i,column=0+OS).value
-        for j in xrange(1+OS,sheetcol+OS):
-            address = inws.cell(row=i,column=j).value
-            flag = True
-            if num and address:
-                if sheetname == 'LH':
-                    address += u'市'
-                ddict = Analyse(address)
-                if ddict[0]:
-                    ddict = ddict[1]
-                    if num not in maindict:
-                        flag = False
-                    elif ddict['province'] != maindict[num]['province']:
-                        result = 4
-                    elif ddict['city'] != maindict[num]['city']:
-                        result = 3
-                    elif ddict['district'] != maindict[num]['district']:
-                        result = 2
-                    else:
-                        result = 1
-                else:
-                    flag = False
-            else:
-                flag = False
-            if not flag:
-                result = 'error'
-                error += 1
-            inws.cell(row=i,column=sheetcol+j-1).value = result
-    return error
+def load_dict(name):
+    strdict = open('./temp/' + name).read()
+    strdict  = json.loads(strdict)
+    ddict = {}
+    for (key,value) in strdict.items():
+        ddict[int(key)] = value
+    return ddict
 
-def CheckDoubleDict():
-    error = 0
-    inws = inwb.get_sheet_by_name(MIXSET)
-    sheetrow = inws.get_highest_row()
-    sheetcol = inws.get_highest_column()
-    for i in range(1+OS,sheetrow+OS):
-        num1 = inws.cell(row=i,column=0+OS).value
-        num2 = inws.cell(row=i,column=1+OS).value
-        flag = True
-        if num1 and num2 and (num1 in rootdict) and (num2 in hoteldict):
-            if rootdict[num1]['province'] != hoteldict[num2]['province']:
-                result = 4
-            elif rootdict[num1]['city'] != hoteldict[num2]['city']:
-                result = 3
-            elif rootdict[num1]['district'] != hoteldict[num2]['district']:
-                result = 2
-            else:
-                result = 1
+def compare(num, dict1, dict2, fw):
+    """地址比较函数
+    输入：地址一的key 地址一 地址库 输出文件对象
+    """
+    if num not in dict2:
+        fw.write('no number\n')
+    elif dict1[u'province'] != dict2[num][u'province']:
+        fw.write('4\n')
+    elif dict1[u'city'] != dict2[num][u'city']:
+        fw.write('3\n')
+    elif dict1[u'district'] != dict2[num][u'district']:
+        fw.write('2\n')
+    else:
+        fw.write('1\n')
+
+def comp_lh(num, addr, fw, char):
+    addr = addr + DIVISIONS[1]
+    ddict = analyse(addr)
+    if ddict[0]:
+        ddict = ddict[1]
+        if num not in rootdict:
+            fw.write('no number')
+            fw.write(char)
+        elif ddict[u'province'] != rootdict[num][u'province']:
+            fw.write('4')
+            fw.write(char)
+        elif ddict[u'city'] != rootdict[num][u'city']:
+            fw.write('3')
+            fw.write(char)
+        elif ddict[u'district'] != rootdict[num][u'district']:
+            fw.write('2')
+            fw.write(char)
         else:
-            flag = False
-        if not flag:
-            result = 'error'
-            error += 1
-        inws.cell(row=i,column=2+OS).value = result
-    return error
+            fw.write('1')
+            fw.write(char)
+    else:
+        fw.write('error')
+        fw.write(char)
 
 
 if __name__ == '__main__':
-
-    print(u'程序开始运行...')
-
-    sysstr = platform.system()
-    if sysstr == "Windows":
-        OS = 1
-
     if not os.path.exists('output'):
         os.mkdir('output')
+    if not os.path.exists('temp'):
+        os.mkdir('temp')
 
-    try:
-        inwb = load_workbook('./input/data.xlsx')
-    except:
-        print (u'文件读取错误')
+    if not os.path.isfile('./temp/rootdict'):
+        print(u'读取主地址并进行标准化输出')
+        data = read_file('root.txt')
+        fw = codecs.open('./output/root.txt','w','utf-8')
+        rootdict = {}
+        for item in data:
+            num = int(item[0])
+            addr = item[1]
+            ddict = analyse(addr)
+            if ddict[0]:
+                ddict = ddict[1]
+                rootdict[num] = ddict
+                fw.write(str(num)); fw.write('\t'); fw.write(ddict['province'])
+                fw.write(ddict['city']); fw.write(ddict['district']); fw.write('\n')
+            else:
+                fw.write('error\n')
+        fw.close()
+        save_dict(rootdict,'rootdict')
     else:
-	    rootdict = {}
-	    hoteldict = {}
+        print(u'从本地读取主地址')
+        rootdict = load_dict('rootdict')
 
-	    error = CreateDict(ROOTNAME,rootdict)
-	    print (u"读取主地址并进行标准化输出,出现错误数: %d" %error)
-	    
-	    error = CreateDict(HOTELNAME,hoteldict)
-	    print (u"读取旅馆地址并进行标准化输出,出现错误数: %d" %error)
+    if STEP['IB']:
+        print(u'IB表输入和主地址进行比对')
+        data = read_file('IB.txt')
+        fw = codecs.open('./output/IB.txt','w','utf-8')
+        tw = codecs.open('./temp/IB','w','utf-8')
+        for item in data:
+            num = int(item[0])
+            addr = item[1]
+            ddict = analyse(addr)
+            if ddict[0]:
+                ddict = ddict[1]
+                tw.write(str(num)); tw.write('\t'); tw.write(ddict['province'])
+                tw.write(ddict['city']); tw.write(ddict['district']); tw.write('\n')
+                compare(num,ddict,rootdict,fw)
+            else:
+                fw.write('error\n')
+                tw.write('error\n')
+        fw.close()
+        tw.close()
 
-	    for item in ROOTSET:
-	        error = CheckDict(item,rootdict)
-	        print (u"读取%s表并进行比对,出现错误数: %d" %(item,error))
-	    
-	    error = CheckDoubleDict()
-	    print (u"读取%s表并进行比对,出现错误数: %d" %(MIXSET,error))
-	    
-	    inwb.save('./output/tst.xlsx')
-	    print (u'全部完成')
+    if STEP['YH']:
+        print(u'YH表输入和主地址进行比对')
+        data = read_file('YH.txt')
+        fw = codecs.open('./output/YH.txt','w','utf-8')
+        tw = codecs.open('./temp/YH','w','utf-8')
+        for item in data:
+            num = int(item[0])
+            addr = item[1]
+            ddict = analyse(addr)
+            if ddict[0]:
+                ddict = ddict[1]
+                tw.write(str(num)); tw.write('\t'); tw.write(ddict['province'])
+                tw.write(ddict['city']); tw.write(ddict['district']); tw.write('\n')
+                compare(num,ddict,rootdict,fw)
+            else:
+                fw.write('error\n')
+                tw.write('error\n')
+        fw.close()
+        tw.close()
+
+    if not os.path.isfile('./temp/hoteldict'):
+        print(u'读取旅馆地址并进行标准化输出')
+        data = read_file('hotel.txt')
+        fw = codecs.open('./output/hotel.txt','w','utf-8')
+        hoteldict = {}
+        for item in data:
+            num = int(item[0])
+            addr = item[1]
+            ddict = analyse(addr)
+            if ddict[0]:
+                ddict = ddict[1]
+                hoteldict[num] = ddict
+                fw.write(str(num)); fw.write('\t'); fw.write(ddict['province'])
+                fw.write(ddict['city']); fw.write(ddict['district']); fw.write('\n')
+            else:
+                fw.write('error\n')
+        fw.close()
+        save_dict(hoteldict,'hoteldict')
+    else:
+        print(u'从本地读取旅馆地址')
+        hoteldict = load_dict('hoteldict')
+
+    if STEP['LG']:
+        print(u'读取LG表并进行比对')
+        data = read_file('LG.txt')
+        fw = codecs.open('./output/LG.txt','w','utf-8')
+        for item in data:
+            num1 = int(item[0])
+            num2 = int(item[1])
+            if num1 not in rootdict or num2 not in hoteldict:
+                fw.write('error\n')
+            elif rootdict[num1][u'province'] != hoteldict[num2][u'province']:
+                fw.write('4\n')
+            elif rootdict[num1][u'city'] != hoteldict[num2][u'city']:
+                fw.write('3\n')
+            elif rootdict[num1][u'district'] != hoteldict[num2][u'district']:
+                fw.write('2\n')
+            else:
+                fw.write('1\n')
+        fw.close()
+
+    if STEP['LH']:
+        print(u'LH表输入和主地址进行比对')
+        fr = open('./input/LH.txt', 'r')
+        fw = codecs.open('./output/LH.txt','w','utf-8')
+        for line in fr.readlines():
+            num1 = int(line.split('\t')[0])
+            addr1 = line.split('\t')[1]
+            addr2 = line.split('\t')[2]
+            addr2 = addr2.strip()
+            comp_lh(num1, addr1, fw, '\t')
+            comp_lh(num1, addr2, fw, '\n')
+        fr.close()
+        fw.close()
+
+    print(u'全部完成')
+    
