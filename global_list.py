@@ -28,4 +28,4 @@ ROOTSET = ['IB','YH','LH']
 MIXSET = 'LG'
 
 #Linux为0;windows为1.程序会自行判断.影响表格行列起始值
-OS = 0
+#OS = 0
