@@ -27,5 +27,5 @@ HOTELNAME = u'旅馆代码'
 ROOTSET = ['IB','YH','LH']
 MIXSET = 'LG'
 
-#Linux为0;windows为1.程序会自行判断.影响表格行列起始值
+#Linux为0;windows为1.程序会自行判断.影响表格行列起始值 事实上并不影响(逃)
 #OS = 0

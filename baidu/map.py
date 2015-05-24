@@ -31,7 +31,7 @@ def finddir(xy,apikey):
         resp, content = h.request(url)
         data = json.loads(content)
     except:
-        ddict[u'province'] = u'error'
+        ddict[u'province'] = u'Error'
         ddict[u'city'] = ddict[u'district'] = ''
         return ddict
     ddict[u'province'] = data[u'result'][u'addressComponent'][u'province']

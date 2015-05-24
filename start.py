@@ -56,6 +56,11 @@ def CreateDict(sheetname,maindict):
                     ddict = ddict[1]
                     maindict[num] = ddict
                     addr = ddict['province'] + ' ' + ddict['city'] + ' ' + ddict['district']
+                    """
+                    if 'Error' in addr:
+                        addr = 'Error'
+                        error += 1
+                    """
                     inws.cell(row=i,column=sheetcol).value = addr
                 else:
                     flag = False
